@@ -1,0 +1,63 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Lightbox: cấu trúc Padding + Overflow Hidden — Wrapper (ẩn tràn) -> Ánh sáng xoay (200%) -> Ảnh đè lên (chừa 3px) */
+@keyframes lightbox-spin {
+  0% {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  100% {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+.lightbox-image-wrapper {
+  position: relative;
+  overflow: hidden;
+  padding: 3px;
+  border-radius: 16px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+}
+
+/* Con rắn ánh sáng: to gấp đôi khung, xoay giữa tâm để vệt sáng lướt đều 4 mép */
+.lightbox-image-wrapper::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 200%;
+  height: 200%;
+  background: conic-gradient(transparent 70%, #a855f7, #3b82f6);
+  animation: lightbox-spin 2s linear infinite;
+  z-index: 0;
+  transform: translate(-50%, -50%) rotate(0deg);
+}
+
+.lightbox-image-inner {
+  position: relative;
+  z-index: 10;
+  width: 100%;
+  height: 100%;
+  border-radius: 14px;
+  overflow: hidden;
+  background-color: #000;
+}
