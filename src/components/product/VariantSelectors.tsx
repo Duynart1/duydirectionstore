@@ -1,12 +1,14 @@
 "use client";
 
 import type { ProductVariantGroup } from "@/types";
+import { formatPrice } from "@/lib/utils";
 
 interface VariantSelectorsProps {
   groups: ProductVariantGroup[];
   selected: Record<string, string>;
   onSelect: (groupId: string, optionId: string) => void;
   disabled?: boolean;
+  basePrice: number;
 }
 
 export function VariantSelectors({
@@ -14,6 +16,7 @@ export function VariantSelectors({
   selected,
   onSelect,
   disabled,
+  basePrice,
 }: VariantSelectorsProps) {
   return (
     <div className="space-y-4">
@@ -25,7 +28,8 @@ export function VariantSelectors({
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             {group.options.map((opt) => {
               const isSelected = selected[group.id] === opt.id;
-              const outOfStock = opt.stock < 1;
+              const outOfStock = !opt.inStock || opt.stock < 1;
+              const optionPrice = basePrice + opt.priceModifier;
               return (
                 <button
                   key={opt.id}
@@ -34,13 +38,15 @@ export function VariantSelectors({
                   onClick={() => onSelect(group.id, opt.id)}
                   className={`relative w-full px-3 py-2 rounded-xl border text-sm font-medium transition-all ${
                     outOfStock
-                      ? "border-slate-200 bg-slate-50 text-slate-400 line-through cursor-not-allowed"
+                      ? "border-slate-200 bg-slate-50 text-slate-400 line-through cursor-not-allowed opacity-50"
                       : isSelected
                         ? "border-violet-600 bg-violet-50 text-violet-800 shadow-sm"
                         : "border-slate-200 bg-white text-slate-700 hover:border-violet-400 hover:bg-violet-50/40"
                   }`}
                 >
-                  <span className="block truncate">{opt.name}</span>
+                  <span className="block truncate">
+                    {opt.name} ({formatPrice(optionPrice)})
+                  </span>
                   {outOfStock && (
                     <span
                       aria-hidden

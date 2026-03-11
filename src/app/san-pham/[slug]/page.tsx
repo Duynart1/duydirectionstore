@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import { getCategoryById } from "@/data/categories";
-import { getProductBySlug, getRelatedProducts } from "@/data/products";
+import { getAllProducts, getProductBySlug, getRelatedProducts } from "@/data/products";
 import type { Product } from "@/types";
 import { ProductDetailClient } from "./ProductDetailClient";
 
@@ -17,6 +17,13 @@ export async function generateMetadata({
     title: product.name,
     description: product.shortDescription,
   };
+}
+
+export async function generateStaticParams() {
+  const products = getAllProducts();
+  return products.map((product) => ({
+    slug: product.slug,
+  }));
 }
 
 export default async function ProductDetailPage({

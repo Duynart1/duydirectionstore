@@ -118,8 +118,11 @@ export function ProductDetailClient({
 
           {product.variantGroups && product.variantGroups.length > 0 && (
             <div className="mb-6">
+              {product.purchaseNotes && (
+                <PurchaseNotes notes={product.purchaseNotes} />
+              )}
               {allVariantsSelected && currentPrice != null && (
-                <div className="flex items-center justify-between mb-2 text-sm">
+                <div className="flex items-center justify-between mt-1 mb-3 text-sm">
                   <span className="text-slate-700">
                     Gói đăng ký:{" "}
                     <span className="font-semibold text-slate-900">
@@ -141,9 +144,6 @@ export function ProductDetailClient({
                   </button>
                 </div>
               )}
-              {product.purchaseNotes && (
-                <PurchaseNotes notes={product.purchaseNotes} />
-              )}
               <VariantSelectors
                 groups={product.variantGroups}
                 selected={selectedVariants}
@@ -151,6 +151,7 @@ export function ProductDetailClient({
                   setSelectedVariants((prev) => ({ ...prev, [groupId]: optionId }))
                 }
                 disabled={!product.inStock}
+                basePrice={product.price}
               />
             </div>
           )}

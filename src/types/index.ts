@@ -16,6 +16,7 @@ export interface ProductVariantOption {
   name: string; // e.g. "1 tháng", "3 tháng"
   priceModifier: number; // added to base price, can be 0
   stock: number;
+  inStock: boolean; // explicit availability flag for this variant option
 }
 
 export interface ProductVariantGroup {
