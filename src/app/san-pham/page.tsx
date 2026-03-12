@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import { ProductCard } from "@/components/product/ProductCard";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { getAllProducts } from "@/data/products";
+import { supabase } from "@/utils/supabase/client";
 export const metadata = {
   title: "Sản phẩm",
   description: "Danh sách sản phẩm số: tài khoản giải trí, phần mềm, khóa học.",
@@ -31,13 +31,14 @@ async function ProductListWithSearch({
   searchParams: Promise<{ q?: string }>;
 }) {
   const { q } = await searchParams;
-  const all = getAllProducts();
-  const products = q
-    ? all.filter(
-        (p) =>
-          p.name.toLowerCase().includes(q.toLowerCase()) ||
-          p.shortDescription.toLowerCase().includes(q.toLowerCase())
-      )
+  const { data } = await supabase
+    .from("products")
+    .select("id,name,slug,image_url,created_at,product_variants(price,original_price)")
+    .order("created_at", { ascending: false });
+  const all = (data ?? []) as any[];
+  const query = q?.toLowerCase() ?? "";
+  const products = query
+    ? all.filter((p) => (p.name as string).toLowerCase().includes(query))
     : all;
 
   if (products.length === 0) {

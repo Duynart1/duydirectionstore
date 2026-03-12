@@ -3,7 +3,7 @@ import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import { ProductCard } from "@/components/product/ProductCard";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { getCategoryBySlug } from "@/data/categories";
-import { getProductsByCategoryId } from "@/data/products";
+import { supabase } from "@/utils/supabase/client";
 
 export async function generateMetadata({
   params,
@@ -28,7 +28,12 @@ export default async function CategoryPage({
   const category = getCategoryBySlug(slug);
   if (!category) notFound();
 
-  const products = getProductsByCategoryId(category.id);
+  const { data } = await supabase
+    .from("products")
+    .select("id,name,slug,image_url,created_at,product_variants(price,original_price)")
+    .eq("category_id", category.id)
+    .order("created_at", { ascending: false });
+  const products = (data ?? []) as any[];
 
   const breadcrumbs = [{ label: category.name }];
 

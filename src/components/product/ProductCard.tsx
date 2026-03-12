@@ -1,19 +1,40 @@
 import Link from "next/link";
 import Image from "next/image";
-import type { Product } from "@/types";
 import { formatPrice } from "@/lib/utils";
 
+export type SupabaseProductCardVariant = {
+  price: number;
+  original_price: number | null;
+};
+
+export type SupabaseProductCardData = {
+  id: string;
+  name: string;
+  slug: string;
+  image_url: string | null;
+  created_at?: string;
+  product_variants?: SupabaseProductCardVariant[];
+};
+
 interface ProductCardProps {
-  product: Product;
-  showCategory?: boolean;
+  product: SupabaseProductCardData;
 }
 
-export function ProductCard({ product, showCategory = true }: ProductCardProps) {
+export function ProductCard({ product }: ProductCardProps) {
+  const variants = product.product_variants ?? [];
+  const prices = variants.map((v) => v.price).filter((p) => Number.isFinite(p));
+  let minPrice = 0;
+  let minOriginalPrice: number | null = null;
+  if (prices.length) {
+    minPrice = Math.min(...prices);
+    const minVariant = variants.find((v) => v.price === minPrice) ?? null;
+    minOriginalPrice = minVariant?.original_price ?? null;
+  }
   const discount =
-    product.originalPrice && product.originalPrice > product.price
-      ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
+    minOriginalPrice && minOriginalPrice > minPrice
+      ? Math.round(((minOriginalPrice - minPrice) / minOriginalPrice) * 100)
       : 0;
-  const imageSrc = product.images[0] || "/images/placeholder-product.svg";
+  const imageSrc = product.image_url || "/images/placeholder-product.svg";
 
   return (
     <article className="group relative bg-white rounded-xl border border-slate-200 overflow-hidden hover:shadow-lg hover:border-emerald-200 transition-all duration-300 flex flex-col h-full">
@@ -40,34 +61,18 @@ export function ProductCard({ product, showCategory = true }: ProductCardProps) 
             -{discount}%
           </span>
         )}
-        {!product.inStock && (
-          <span className="absolute inset-0 bg-slate-900/50 flex items-center justify-center">
-            <span className="bg-slate-800 text-white px-3 py-1 rounded text-sm font-medium">
-              Hết hàng
-            </span>
-          </span>
-        )}
       </Link>
       <div className="p-4 flex-1 flex flex-col">
-        {showCategory && (
-          <span className="text-xs text-slate-500 mb-1 line-clamp-1">Danh mục</span>
-        )}
         <h3 className="font-semibold text-slate-800 line-clamp-2 mb-2 group-hover:text-emerald-600 transition">
           <Link href={`/san-pham/${product.slug}`}>{product.name}</Link>
         </h3>
         <div className="flex items-center gap-2 mb-2">
-          <span className="text-lg font-bold text-emerald-600">{formatPrice(product.price)}</span>
-          {product.originalPrice && product.originalPrice > product.price && (
+          <span className="text-lg font-bold text-emerald-600">
+            {prices.length ? formatPrice(minPrice) : "Liên hệ"}
+          </span>
+          {minOriginalPrice && minOriginalPrice > minPrice && (
             <span className="text-sm text-slate-400 line-through">
-              {formatPrice(product.originalPrice)}
-            </span>
-          )}
-        </div>
-        <div className="flex items-center justify-between text-sm text-slate-500 mt-auto">
-          <span>Đã bán: {product.soldCount}</span>
-          {product.rating != null && (
-            <span className="flex items-center gap-0.5">
-              ⭐ {product.rating}
+              {formatPrice(minOriginalPrice)}
             </span>
           )}
         </div>

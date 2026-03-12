@@ -1,8 +1,17 @@
-import { getFeaturedProducts } from "@/data/products";
 import { ProductCard } from "@/components/product/ProductCard";
+import { supabase } from "@/utils/supabase/client";
 
-export function PromoProducts() {
-  const featured = getFeaturedProducts();
+async function getFeaturedFromSupabase() {
+  const { data } = await supabase
+    .from("products")
+    .select("id,name,slug,image_url,created_at,product_variants(price,original_price)")
+    .order("created_at", { ascending: false })
+    .limit(8);
+  return (data ?? []) as any[];
+}
+
+export async function PromoProducts() {
+  const featured = await getFeaturedFromSupabase();
 
   return (
     <section className="py-12">

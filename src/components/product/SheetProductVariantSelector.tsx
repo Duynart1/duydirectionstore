@@ -48,7 +48,7 @@ export function SheetProductVariantSelector({
         v.duration === selectedDuration
     );
 
-    if (!matched) {
+    if (!matched || !matched.isAvailable) {
       return {
         label: "Sản phẩm này tạm hết hàng",
         isRange: false,
@@ -79,22 +79,37 @@ export function SheetProductVariantSelector({
           <div className="flex flex-wrap gap-2">
             {group.accountTypes.map((type) => {
               const isSelected = selectedAccountType === type;
+              const hasAvailable = group.variants.some((v) => {
+                if (!v.isAvailable) return false;
+                if (v.accountType !== type) return false;
+                if (selectedDuration && v.duration !== selectedDuration) return false;
+                return true;
+              });
+              const disabled = !hasAvailable;
               return (
                 <button
                   key={type}
                   type="button"
-                  onClick={() =>
-                    setSelectedAccountType(
-                      isSelected ? null : type
-                    )
-                  }
-                  className={`px-3 py-2 rounded-full border text-sm font-medium transition-all ${
-                    isSelected
-                      ? "border-violet-600 bg-violet-50 text-violet-800 shadow-sm"
-                      : "border-slate-200 bg-white text-slate-700 hover:border-violet-400 hover:bg-violet-50/40"
+                  disabled={disabled}
+                  onClick={() => {
+                    if (disabled) return;
+                    setSelectedAccountType(isSelected ? null : type);
+                  }}
+                  className={`relative px-3 py-2 rounded-full border text-sm font-medium transition-all ${
+                    disabled
+                      ? "border-slate-200 bg-slate-50 text-slate-400 opacity-50 cursor-not-allowed pointer-events-none"
+                      : isSelected
+                        ? "border-violet-600 bg-violet-50 text-violet-800 shadow-sm"
+                        : "border-slate-200 bg-white text-slate-700 hover:border-violet-400 hover:bg-violet-50/40"
                   }`}
                 >
-                  {type}
+                  <span className="block truncate">{type}</span>
+                  {disabled && (
+                    <span
+                      aria-hidden
+                      className="pointer-events-none absolute inset-x-2 top-1/2 h-[2px] bg-red-500/70 rotate-[-16deg]"
+                    />
+                  )}
                 </button>
               );
             })}
@@ -111,22 +126,37 @@ export function SheetProductVariantSelector({
           <div className="flex flex-wrap gap-2">
             {group.durations.map((duration) => {
               const isSelected = selectedDuration === duration;
+              const hasAvailable = group.variants.some((v) => {
+                if (!v.isAvailable) return false;
+                if (v.duration !== duration) return false;
+                if (selectedAccountType && v.accountType !== selectedAccountType) return false;
+                return true;
+              });
+              const disabled = !hasAvailable;
               return (
                 <button
                   key={duration}
                   type="button"
-                  onClick={() =>
-                    setSelectedDuration(
-                      isSelected ? null : duration
-                    )
-                  }
-                  className={`px-3 py-2 rounded-full border text-sm font-medium transition-all ${
-                    isSelected
-                      ? "border-violet-600 bg-violet-50 text-violet-800 shadow-sm"
-                      : "border-slate-200 bg-white text-slate-700 hover:border-violet-400 hover:bg-violet-50/40"
+                  disabled={disabled}
+                  onClick={() => {
+                    if (disabled) return;
+                    setSelectedDuration(isSelected ? null : duration);
+                  }}
+                  className={`relative px-3 py-2 rounded-full border text-sm font-medium transition-all ${
+                    disabled
+                      ? "border-slate-200 bg-slate-50 text-slate-400 opacity-50 cursor-not-allowed pointer-events-none"
+                      : isSelected
+                        ? "border-violet-600 bg-violet-50 text-violet-800 shadow-sm"
+                        : "border-slate-200 bg-white text-slate-700 hover:border-violet-400 hover:bg-violet-50/40"
                   }`}
                 >
-                  {duration}
+                  <span className="block truncate">{duration}</span>
+                  {disabled && (
+                    <span
+                      aria-hidden
+                      className="pointer-events-none absolute inset-x-2 top-1/2 h-[2px] bg-red-500/70 rotate-[-16deg]"
+                    />
+                  )}
                 </button>
               );
             })}

@@ -1,9 +1,7 @@
 import { notFound } from "next/navigation";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
-import { getCategoryById } from "@/data/categories";
-import { getAllProducts, getProductBySlug, getRelatedProducts } from "@/data/products";
-import type { Product } from "@/types";
-import { ProductDetailClient } from "./ProductDetailClient";
+import { supabase } from "@/utils/supabase/client";
+import { SupabaseProductDetailClient } from "./SupabaseProductDetailClient";
 
 export async function generateMetadata({
   params,
@@ -11,19 +9,16 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const product = getProductBySlug(slug);
-  if (!product) return { title: "Sản phẩm" };
+  const { data } = await supabase
+    .from("products")
+    .select("name,description")
+    .eq("slug", slug)
+    .single();
+  if (!data) return { title: "Sản phẩm" };
   return {
-    title: product.name,
-    description: product.shortDescription,
+    title: data.name,
+    description: (data as any).description ?? undefined,
   };
-}
-
-export async function generateStaticParams() {
-  const products = getAllProducts();
-  return products.map((product) => ({
-    slug: product.slug,
-  }));
 }
 
 export default async function ProductDetailPage({
@@ -32,26 +27,23 @@ export default async function ProductDetailPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const product = getProductBySlug(slug);
-  if (!product) notFound();
+  const { data: product, error } = await supabase
+    .from("products")
+    .select("id,name,slug,description,image_url,product_variants(id,account_type,duration,price,original_price,is_available)")
+    .eq("slug", slug)
+    .single();
 
-  const category = getCategoryById(product.categoryId);
-  const related = getRelatedProducts(product);
+  if (error || !product) notFound();
 
   const breadcrumbs = [
     { label: "Sản phẩm", href: "/san-pham" },
-    ...(category ? [{ label: category.name, href: `/danh-muc/${category.slug}` }] : []),
-    { label: product.name },
+    { label: (product as any).name },
   ].filter(Boolean) as { label: string; href?: string }[];
 
   return (
     <div className="container mx-auto px-4 py-6">
       <Breadcrumbs items={breadcrumbs} />
-      <ProductDetailClient
-        product={product}
-        categoryName={category?.name ?? "Sản phẩm"}
-        relatedProducts={related}
-      />
+      <SupabaseProductDetailClient product={product as any} />
     </div>
   );
 }

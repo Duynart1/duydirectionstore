@@ -11,17 +11,21 @@ import { PurchaseNotes } from "@/components/product/PurchaseNotes";
 import { Button } from "@/components/ui/Button";
 import { formatPrice, cn } from "@/lib/utils";
 import { addToCart } from "@/lib/cart";
+import type { SheetProductGroup } from "@/lib/googleSheets";
+import { SheetProductVariantSelector } from "@/components/product/SheetProductVariantSelector";
 
 interface ProductDetailClientProps {
   product: Product;
   categoryName: string;
   relatedProducts: Product[];
+  sheetGroup: SheetProductGroup | null;
 }
 
 export function ProductDetailClient({
   product,
   categoryName,
   relatedProducts,
+  sheetGroup,
 }: ProductDetailClientProps) {
   const [quantity, setQuantity] = useState(1);
   const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({});
@@ -103,57 +107,66 @@ export function ProductDetailClient({
         <div>
           <p className="text-sm text-slate-500 mb-1">{categoryName}</p>
           <h1 className="text-2xl md:text-3xl font-bold text-slate-800 mb-4">{product.name}</h1>
-          <div className="flex items-center gap-3 mb-4">
-            <span className="text-2xl font-bold text-emerald-600">
-              {currentPrice != null
-                ? formatPrice(currentPrice)
-                : variantPriceRange
-                  ? `${formatPrice(variantPriceRange.min)} – ${formatPrice(
-                      variantPriceRange.max
-                    )}`
-                  : formatPrice(product.price)}
-            </span>
-          </div>
+          {!sheetGroup && (
+            <div className="flex items-center gap-3 mb-4">
+              <span className="text-2xl font-bold text-emerald-600">
+                {currentPrice != null
+                  ? formatPrice(currentPrice)
+                  : variantPriceRange
+                    ? `${formatPrice(variantPriceRange.min)} – ${formatPrice(
+                        variantPriceRange.max
+                      )}`
+                    : formatPrice(product.price)}
+              </span>
+            </div>
+          )}
           <p className="text-slate-600 mb-4">{product.shortDescription}</p>
 
-          {product.variantGroups && product.variantGroups.length > 0 && (
+          {sheetGroup ? (
             <div className="mb-6">
-              {product.purchaseNotes && (
-                <PurchaseNotes notes={product.purchaseNotes} />
-              )}
-              {allVariantsSelected && currentPrice != null && (
-                <div className="flex items-center justify-between mt-1 mb-3 text-sm">
-                  <span className="text-slate-700">
-                    Gói đăng ký:{" "}
-                    <span className="font-semibold text-slate-900">
-                      {/* hiển thị tên option đầu tiên được chọn (giả sử 1 group) */}
-                      {(() => {
-                        const g = product.variantGroups![0];
-                        const optId = selectedVariants[g.id];
-                        const opt = g.options.find((o) => o.id === optId);
-                        return opt ? `${opt.name} (${formatPrice(currentPrice)})` : "";
-                      })()}
-                    </span>
-                  </span>
-                  <button
-                    type="button"
-                    className="text-xs font-semibold text-red-600 hover:text-red-700"
-                    onClick={handleClearSelection}
-                  >
-                    XÓA
-                  </button>
-                </div>
-              )}
-              <VariantSelectors
-                groups={product.variantGroups}
-                selected={selectedVariants}
-                onSelect={(groupId, optionId) =>
-                  setSelectedVariants((prev) => ({ ...prev, [groupId]: optionId }))
-                }
-                disabled={!product.inStock}
-                basePrice={product.price}
-              />
+              <SheetProductVariantSelector group={sheetGroup} />
             </div>
+          ) : (
+            product.variantGroups &&
+            product.variantGroups.length > 0 && (
+              <div className="mb-6">
+                {product.purchaseNotes && (
+                  <PurchaseNotes notes={product.purchaseNotes} />
+                )}
+                {allVariantsSelected && currentPrice != null && (
+                  <div className="flex items-center justify-between mt-1 mb-3 text-sm">
+                    <span className="text-slate-700">
+                      Gói đăng ký:{" "}
+                      <span className="font-semibold text-slate-900">
+                        {/* hiển thị tên option đầu tiên được chọn (giả sử 1 group) */}
+                        {(() => {
+                          const g = product.variantGroups![0];
+                          const optId = selectedVariants[g.id];
+                          const opt = g.options.find((o) => o.id === optId);
+                          return opt ? `${opt.name} (${formatPrice(currentPrice)})` : "";
+                        })()}
+                      </span>
+                    </span>
+                    <button
+                      type="button"
+                      className="text-xs font-semibold text-red-600 hover:text-red-700"
+                      onClick={handleClearSelection}
+                    >
+                      XÓA
+                    </button>
+                  </div>
+                )}
+                <VariantSelectors
+                  groups={product.variantGroups}
+                  selected={selectedVariants}
+                  onSelect={(groupId, optionId) =>
+                    setSelectedVariants((prev) => ({ ...prev, [groupId]: optionId }))
+                  }
+                  disabled={!product.inStock}
+                  basePrice={product.price}
+                />
+              </div>
+            )
           )}
 
           <div className="flex flex-wrap items-center gap-4 mb-6">

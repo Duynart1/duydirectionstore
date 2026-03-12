@@ -9,7 +9,7 @@ export function MegaMenu() {
   const tree = getCategoryTree();
 
   return (
-    <nav className="bg-slate-700 text-white" aria-label="Danh mục">
+    <nav className="hidden md:block bg-slate-700 text-white" aria-label="Danh mục">
       <div className="container mx-auto px-4">
         <ul className="flex flex-wrap items-center gap-1 py-2">
           <li>

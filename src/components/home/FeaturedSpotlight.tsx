@@ -1,14 +1,24 @@
 import Link from "next/link";
 import Image from "next/image";
-import { getFeaturedProducts } from "@/data/products";
+import { supabase } from "@/utils/supabase/client";
 import { formatPrice } from "@/lib/utils";
 
-export function FeaturedSpotlight() {
-  const featured = getFeaturedProducts();
-  const main = featured[0];
+async function getSpotlightProduct() {
+  const { data } = await supabase
+    .from("products")
+    .select("id,name,slug,description,image_url,product_variants(price,original_price)")
+    .order("created_at", { ascending: false })
+    .limit(1);
+  return (data ?? [])[0] as any | undefined;
+}
+
+export async function FeaturedSpotlight() {
+  const main = await getSpotlightProduct();
   if (!main) return null;
 
-  const imageSrc = main.images[0] || "/images/placeholder-product.jpg";
+  const imageSrc = main.image_url || "/images/placeholder-product.jpg";
+  const prices = (main.product_variants ?? []).map((v: any) => v.price).filter((p: number) => Number.isFinite(p));
+  const minPrice = prices.length ? Math.min(...prices) : 0;
 
   return (
     <section className="py-12 bg-white">
@@ -28,12 +38,15 @@ export function FeaturedSpotlight() {
             </div>
             <div className="p-8 flex flex-col justify-center">
               <h3 className="text-2xl font-bold text-slate-800 mb-2">{main.name}</h3>
-              <p className="text-slate-600 mb-4 line-clamp-2">{main.shortDescription}</p>
+              <p className="text-slate-600 mb-4 line-clamp-2">
+                {main.description
+                  ? main.description.replace(/<[^>]+>/g, "").slice(0, 140)
+                  : "Sản phẩm nổi bật được nhiều khách hàng lựa chọn."}
+              </p>
               <div className="flex items-center gap-3 mb-6">
-                <span className="text-2xl font-bold text-emerald-600">{formatPrice(main.price)}</span>
-                {main.originalPrice && (
-                  <span className="text-slate-400 line-through">{formatPrice(main.originalPrice)}</span>
-                )}
+                <span className="text-2xl font-bold text-emerald-600">
+                  {prices.length ? `Từ ${formatPrice(minPrice)}` : "Liên hệ"}
+                </span>
               </div>
               <Link
                 href={`/san-pham/${main.slug}`}

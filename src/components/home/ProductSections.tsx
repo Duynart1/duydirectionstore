@@ -1,16 +1,32 @@
 import Link from "next/link";
 import { getCategoryTree } from "@/data/categories";
-import { getProductsByCategoryId } from "@/data/products";
+import { supabase } from "@/utils/supabase/client";
 import { ProductCard } from "@/components/product/ProductCard";
 
-export function ProductSections() {
+async function getProductsByCategoryFromSupabase(categoryId: string) {
+  const { data } = await supabase
+    .from("products")
+    .select("id,name,slug,image_url,created_at,product_variants(price,original_price)")
+    .eq("category_id", categoryId)
+    .order("created_at", { ascending: false })
+    .limit(4);
+  return (data ?? []) as any[];
+}
+
+export async function ProductSections() {
   const tree = getCategoryTree();
 
   return (
     <section className="py-12 bg-slate-50">
       <div className="container mx-auto px-4">
-        {tree.slice(0, 3).map((cat) => {
-          const categoryProducts = getProductsByCategoryId(cat.id).slice(0, 4);
+        {(
+          await Promise.all(
+            tree.slice(0, 3).map(async (cat) => ({
+              cat,
+              products: await getProductsByCategoryFromSupabase(cat.id),
+            }))
+          )
+        ).map(({ cat, products: categoryProducts }) => {
           if (categoryProducts.length === 0) return null;
           return (
             <div key={cat.id} className="mb-12 last:mb-0">

@@ -18,7 +18,7 @@ export interface SheetVariantRow {
   duration: string;
   price: number;
   sku: string;
-  isActive: boolean;
+  isAvailable: boolean;
 }
 
 export interface SheetProductGroup {
@@ -60,8 +60,7 @@ export async function fetchSheetProductGroups(): Promise<SheetProductGroup[]> {
   url.searchParams.set("key", apiKey);
 
   const res = await fetch(url.toString(), {
-    // Rất quan trọng: chỉ gọi từ server-side
-    cache: "no-store",
+    next: { revalidate: 60 },
   });
 
   if (!res.ok) {
@@ -76,8 +75,8 @@ export async function fetchSheetProductGroups(): Promise<SheetProductGroup[]> {
 
   const rows = (data.values ?? []) as SheetRow[];
 
-  // 1. Map và lọc theo Trạng Thái (G === TRUE)
-  const activeRows: SheetVariantRow[] = rows
+  // 1. Map tất cả dòng (không filter theo Trạng Thái)
+  const allRows: SheetVariantRow[] = rows
     .map((row) => {
       const [
         parentGroup = "",
@@ -89,6 +88,8 @@ export async function fetchSheetProductGroups(): Promise<SheetProductGroup[]> {
         status = "",
       ] = row;
 
+      const isAvailable = parseBooleanFlag(status);
+
       return {
         parentGroup: parentGroup.trim(),
         title: title.trim(),
@@ -96,15 +97,15 @@ export async function fetchSheetProductGroups(): Promise<SheetProductGroup[]> {
         duration: duration.trim(),
         price: parsePrice(priceStr),
         sku: sku.trim(),
-        isActive: parseBooleanFlag(status),
+        isAvailable,
       };
     })
-    .filter((row) => row.parentGroup && row.title && row.isActive);
+    .filter((row) => row.parentGroup && row.title);
 
   // 2. Gom nhóm theo Mã Nhóm (A)
   const groupMap = new Map<string, SheetProductGroup>();
 
-  for (const row of activeRows) {
+  for (const row of allRows) {
     const existing = groupMap.get(row.parentGroup);
     if (!existing) {
       groupMap.set(row.parentGroup, {
@@ -134,5 +135,12 @@ export async function fetchSheetProductGroups(): Promise<SheetProductGroup[]> {
   }
 
   return Array.from(groupMap.values());
+}
+
+export async function fetchSheetGroupByParentGroup(
+  parentGroup: string
+): Promise<SheetProductGroup | null> {
+  const groups = await fetchSheetProductGroups();
+  return groups.find((g) => g.parentGroup === parentGroup) ?? null;
 }
 
