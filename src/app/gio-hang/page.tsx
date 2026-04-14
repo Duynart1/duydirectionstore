@@ -6,40 +6,65 @@ export default function CartPage() {
   const [cartItems, setCartItems] = useState<any[]>([]);
   const [total, setTotal] = useState(0);
 
-  // 1. Hàm tính tổng tiền
+  // 1. Chỉ tính tổng tiền cho những sản phẩm được TÍCH CHỌN
   const calculateTotal = (items: any[]) => {
-    const sum = items.reduce((acc, item) => acc + (item.price * item.qty), 0);
+    const sum = items
+      .filter(item => item.selected)
+      .reduce((acc, item) => acc + (item.price * item.qty), 0);
     setTotal(sum);
   };
 
-  // 2. Lấy dữ liệu từ bộ nhớ khi mở trang
+  // 2. Tải dữ liệu, mặc định cho tích chọn tất cả khi mới vào
   useEffect(() => {
     const savedCart = localStorage.getItem("sk_cart");
     if (savedCart) {
-      const items = JSON.parse(savedCart);
+      let items = JSON.parse(savedCart);
+      items = items.map((item: any) => ({ ...item, selected: true }));
       setCartItems(items);
       calculateTotal(items);
     }
   }, []);
 
-  // 3. Hàm XÓA sản phẩm
+  // 3. Xử lý khi khách bấm vào ô Checkbox
+  const toggleSelection = (id: string) => {
+    const updatedCart = cartItems.map(item =>
+      item.id === id ? { ...item, selected: !item.selected } : item
+    );
+    setCartItems(updatedCart);
+    calculateTotal(updatedCart);
+  };
+
+  // 4. Xóa sản phẩm
   const handleRemoveItem = (id: string) => {
     const updatedCart = cartItems.filter(item => item.id !== id);
     setCartItems(updatedCart);
     calculateTotal(updatedCart);
-    localStorage.setItem("sk_cart", JSON.stringify(updatedCart));
+    // Khi lưu lại bộ nhớ, loại bỏ trạng thái selected để không làm rác data
+    const cartToSave = updatedCart.map(({ selected, ...rest }) => rest);
+    localStorage.setItem("sk_cart", JSON.stringify(cartToSave));
   };
 
-  // 4. Hàm Copy đơn hàng và gửi Zalo
+  // 5. Nâng cấp: Gửi Zalo và Đổi SĐT
   const handleContactAdmin = () => {
-    if (cartItems.length === 0) return;
+    const selectedProducts = cartItems.filter(item => item.selected);
 
-    const orderText = cartItems.map(item => `- ${item.name} (x${item.qty}) - ${(item.price * item.qty).toLocaleString()}đ`).join('\n');
-    const message = `Chào Shop, mình muốn mua các sản phẩm sau:\n${orderText}\n\nTổng cộng: ${total.toLocaleString()}đ`;
+    if (selectedProducts.length === 0) {
+      alert("⚠️ Bạn chưa chọn sản phẩm nào để mua!");
+      return;
+    }
+
+    const orderText = selectedProducts.map(item => {
+      const options = [item.service, item.plan, item.duration].filter(Boolean).join(' | ');
+      const optionText = options ? `\n   👉 Phân loại: ${options}` : '';
+      return `- ${item.name} (x${item.qty}) - ${(item.price * item.qty).toLocaleString()}đ${optionText}`;
+    }).join('\n\n');
+
+    const message = `Chào Shop, mình muốn chốt đơn hàng sau:\n\n${orderText}\n\n💰 Tổng cộng: ${total.toLocaleString()}đ`;
 
     navigator.clipboard.writeText(message).then(() => {
-      alert("✅ Đã copy đơn hàng! Hãy 'Dán' vào tin nhắn Zalo cho Shop nhé.");
-      window.open("https://zalo.me/0359881860", "_blank");
+      alert("✅ Đã copy đơn hàng! Bạn chỉ cần 'Dán' vào khung chat Zalo nhé.");
+      // Đã cập nhật SĐT Zalo mới
+      window.open("https://zalo.me/0369143082", "_blank");
     });
   };
 
@@ -61,20 +86,45 @@ export default function CartPage() {
           <>
             <div className="space-y-4 mb-8">
               {cartItems.map((item, idx) => (
-                <div key={idx} className="flex justify-between items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
+                <div key={idx} className="flex gap-4 items-center p-4 bg-white rounded-lg shadow-sm hover:shadow-md transition border border-gray-100">
+
+                  {/* Ô Checkbox */}
+                  <input
+                    type="checkbox"
+                    checked={item.selected}
+                    onChange={() => toggleSelection(item.id)}
+                    className="w-5 h-5 text-teal-600 bg-gray-100 border-gray-300 rounded focus:ring-teal-500 cursor-pointer"
+                  />
+
+                  {/* Ảnh sản phẩm thu nhỏ */}
+                  <div className="w-20 h-20 bg-gray-50 rounded-md border border-gray-200 overflow-hidden flex items-center justify-center shrink-0">
+                    {item.image ? (
+                      <img src={item.image} alt={item.name} className="w-full h-full object-contain" />
+                    ) : (
+                      <span className="text-[10px] text-gray-400">Chưa có ảnh</span>
+                    )}
+                  </div>
+
+                  {/* Thông tin sản phẩm */}
                   <div className="flex-1">
                     <h3 className="font-bold text-gray-700">{item.name}</h3>
+                    <div className="mt-1 mb-2 text-sm text-gray-600">
+                      {item.service && <div><span className="font-medium">Dịch vụ:</span> {item.service}</div>}
+                      {item.plan && <div><span className="font-medium">Gói:</span> {item.plan}</div>}
+                      {item.duration && <div><span className="font-medium">Thời hạn:</span> {item.duration}</div>}
+                    </div>
                     <p className="text-xs text-gray-500 italic">Số lượng: {item.qty}</p>
                   </div>
-                  <div className="flex items-center gap-6">
-                    <span className="text-red-500 font-bold">{(item.price * item.qty).toLocaleString()}đ</span>
-                    {/* NÚT XÓA */}
+
+                  {/* Giá và Nút xóa */}
+                  <div className="flex flex-col items-end gap-3">
+                    <span className="text-red-500 font-bold text-lg">{(item.price * item.qty).toLocaleString()}đ</span>
                     <button
                       onClick={() => handleRemoveItem(item.id)}
-                      className="text-gray-400 hover:text-red-600 transition p-2"
+                      className="text-gray-400 hover:text-red-600 transition p-1"
                       title="Xóa sản phẩm"
                     >
-                      🗑️
+                      🗑️ Xóa
                     </button>
                   </div>
                 </div>
